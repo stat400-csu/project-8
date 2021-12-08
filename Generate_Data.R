@@ -212,8 +212,3 @@ for(i in 1:m){
   }
 }
  
-
-write.csv(season1_generated, "Project_stat400/season1_generated.csv")
-write.csv(season2_generated_baseline, "Project_stat400/season2_generated_baseline.csv")
-write.csv(season2_generated_cutoff, "Project_stat400/season2_generated_cutoff.csv")
-write.csv(season2_generated_parabolic, "Project_stat400/season2_generated_parabolic.csv")
