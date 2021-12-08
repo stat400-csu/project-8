@@ -1,0 +1,45 @@
+---
+title: "Bootstrap sampling"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+set.seed(0)
+read.csv('Final_Data (1).csv') -> data
+boot_conf <- c()
+boot_p <- c()
+boot_conf2 <- c()
+boot_p2 <- c()
+nums <- seq(1, 226)
+for(i in 1:20000){
+samp3 <- c()
+samp4 <- c()
+
+samp1 <- sample(data$season1, replace = TRUE, size = 200)
+
+samp2 <- sample(data$season2, replace = TRUE, size = 200)
+append(boot_conf, t.test(x = samp1, y = samp2)[4]) -> boot_conf
+append(boot_p, t.test(x = samp1, y = samp2)[3]) -> boot_p
+sample(nums, replace = TRUE, size = 200) -> indexs
+for(j in 1:length(indexs)){
+  append(samp3, data$season1[indexs[j]]) -> samp3
+  append(samp4, data$season1[indexs[j]]) -> samp4
+}
+  append(boot_conf2, t.test(x = samp3, y = samp4)[4]) -> boot_conf2
+  append(boot_p2, t.test(x = samp3, y = samp2)[3]) -> boot_p2
+}
+
+
+mean(unlist(boot_p))
+sd(unlist(boot_p))
+mean(unlist(boot_p2))
+sd(unlist(boot_p2))
+lm(data = data, season2 ~ season1) -> model
+summary(model)
+```
+
