@@ -16,7 +16,7 @@ library(tidyverse)
 
 ```{r}
 # Read Data
-read.csv('Final_Data (1).csv') -> data
+read.csv('imdb_data.csv') -> data
 
 
 
