@@ -1,0 +1,42 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Install Packages
+install.packages('tidyverse')
+library(tidyverse)
+
+```
+
+```{r}
+# Read Data
+read.csv('imdb_data.csv') -> data
+
+
+
+```
+
+```{r}
+# Analysis
+
+ggplot() + geom_histogram(data = data, aes(season1), fill = "steelblue3") + xlab("Season 1 Ratings") 
+
+ggplot() + geom_histogram(data = data, aes(season2), fill = "orange") + xlab("Season 2 Ratings") 
+
+ggplot() + geom_histogram(data = data, aes(season2), fill = "orange", alpha = .6) + xlab("Ratings")  + geom_histogram(data = data, aes(season1), fill = "steelblue3", alpha = .6)
+
+qqnorm(data$season1,  main = "Normal Q-Q Season 2")
+qqnorm(data$season2, main = "Normal Q-Q Season 2")
+
+
+
+```
+
+
+
