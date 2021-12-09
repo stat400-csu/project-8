@@ -1,0 +1,134 @@
+---
+title: "Plots and Tables for Generated Data"
+author: "Tyler Hempstead"
+date: "12/8/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+ggplot(imbd_data) +
+  geom_point(aes(x=season1, y=season2)) +
+  ggtitle("Season 1 Means vs. Season 2 Means")
+```
+
+```{r baseline_matrix_table}
+baseline_matrix <- baseline_matrix
+baseline_df <- data.frame(baseline_matrix)
+rownames(baseline_df) <- c("Season1=0", "Season1=1", "Season1=2", "Season1=3", "Season1=4", "Season1=5", "Season1=6", "Season1=7", "Season1=8", "Season1=9", "Season1=10")
+colnames(baseline_df) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+baseline_matrix_table <- kable(baseline_df, caption = "P(rate season 2 | season1 rating)", digits = 3, booktabs = TRUE)
+baseline_matrix_table
+```
+
+
+```{r cutoff_matrix_table}
+cutoff_df <-data.frame(cutoff_matrix)
+rownames(cutoff_df) <- c("Season1=0", "Season1=1", "Season1=2", "Season1=3", "Season1=4", "Season1=5", "Season1=6", "Season1=7", "Season1=8", "Season1=9", "Season1=10")
+colnames(cutoff_df) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+baseline_cutoff_table <- kable(cutoff_df, caption = "P(rate season 2 | season1 rating)", digits = 3)
+baseline_cutoff_table
+```
+
+
+```{r parabolic_matrix_table}
+parabolic_df <-data.frame(parabolic_matrix)
+rownames(parabolic_df) <- c("Season1=0", "Season1=1", "Season1=2", "Season1=3", "Season1=4", "Season1=5", "Season1=6", "Season1=7", "Season1=8", "Season1=9", "Season1=10")
+colnames(parabolic_df) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+baseline_parabolic_table <- kable(parabolic_df, caption = "P(rate season 2 | season1 rating)", digits = 3)
+baseline_parabolic_table
+```
+
+
+```{r noassumption_plot}
+no_assumptionPlot <- ggplot() +
+  coord_cartesian(xlim = c(0, 10), ylim = c(0, 1)) +
+  geom_segment(aes(x=0, xend=10, y=10/11, yend=10/11)) +
+  scale_x_continuous(breaks=c(0,1,2,3,4,5,6,7,8,9,10)) +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)) +
+  xlab("Season 1 Rating") +
+  ylab("P(Rate Season 2)") +
+  ggtitle("No Assumptions")
+no_assumptionPlot
+```
+
+```{r cutoff_plot}
+cutoff_plot <- ggplot() +
+  coord_cartesian(xlim = c(0, 10), ylim = c(0, 1)) +
+  geom_vline(xintercept = 3, linetype="dashed", color = "red") +
+  geom_segment(aes(x=4, xend=10, y=.6, yend=1)) +
+  scale_x_continuous(breaks=c(0,1,2,3,4,5,6,7,8,9,10)) +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)) +
+  xlab("Season 1 Rating") +
+  ylab("P(Rate Season 2)") +
+  ggtitle("Cutoff Assumption")
+cutoff_plot
+```
+
+```{r parabolic_plot}
+parab_func <- function(x){
+  ((x-5)^2)/25
+}
+quadratic_plot <- ggplot() +
+  stat_function(fun = parab_func) +
+  xlim(c(0, 10)) +
+  ylim(c(0,1)) +
+  xlab("Season 1 Rating") +
+  ylab("P(Rate Season 2)") +
+  ggtitle("Quadratic Assumption") +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)) 
+quadratic_plot
+
+```
+
+
+```{r diff_histograms}
+differences <- cbind(colMeans(season1_generated) - colMeans(season2_generated_baseline), colMeans(season1_generated) - colMeans(season2_generated_cutoff), colMeans(season1_generated) - colMeans(season2_generated_parabolic))
+differences_df <- data.frame(differences)
+
+baseline_hist <- ggplot() +
+  geom_histogram(aes(differences_df$X1)) +
+  ggtitle("Histogram of Mean Baseline Differences") +
+  xlab("Mean Differences")
+
+cutoff_hist <- ggplot() +
+  geom_histogram(aes(differences_df$X2)) +
+  ggtitle("Histogram of Mean Differences") +
+  xlab("Mean Differences")
+  
+parabolic_hist <- ggplot() +
+  geom_histogram(aes(differences_df$X3)) +
+  ggtitle("Histogram of Mean Differences") +
+  xlab("Mean Differences")
+
+baseline_hist
+cutoff_hist
+parabolic_hist
+```
+
+
+
+
+```{r compare_methods}
+mean_original <- mean(imbd_data$season1 - imbd_data$season2)
+se_original <- sd(imbd_data$season1 - imbd_data$season2)
+
+
+mean_baseline <- mean(colMeans(season1_generated) - colMeans(season2_generated_baseline))
+se_baseline <- sd(colMeans(season1_generated) - colMeans(season2_generated_baseline))
+
+mean_cutoff <- mean(colMeans(season1_generated) - colMeans(season2_generated_cutoff))
+se_cutoff <- sd(colMeans(season1_generated) - colMeans(season2_generated_cutoff))
+
+mean_quadratic <- mean(colMeans(season1_generated) - colMeans(season2_generated_parabolic))
+se_quadratic <- sd(colMeans(season1_generated) - colMeans(season2_generated_parabolic))
+comparison <- rbind(c(mean_original, se_original), c(mean_baseline, se_baseline), c(mean_cutoff, se_cutoff), c(mean_quadratic, se_quadratic))
+comparison_df <- data.frame(comparison)
+rownames(comparison_df) <- c("Original Data", "No Assumptions", "Cutoff Assumption", "Quadratic Assumption") 
+colnames(comparison_df) <- c("Mean of Mean Differences", "SE of Mean Differences")
+comparison_table <- kable(comparison_df, caption = "Comparison of Original vs. Generated", digits = 3)  
+comparison_table 
+```
