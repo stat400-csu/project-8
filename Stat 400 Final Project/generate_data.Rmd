@@ -1,0 +1,289 @@
+---
+title: "Untitled"
+author: "Tyler Hempstead"
+date: "12/10/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+set.seed(400)
+library(tidyverse)
+library(knitr)
+```
+
+```{r}
+#convert mean score to probability
+imbd_data <- read.csv("imbd_data.csv")
+imbd_new <- imbd_data %>%
+  mutate(p_season1 = season1/10)
+
+
+#Generate original transition matrices
+baseline_matrix <- matrix(c(rep(1/11,121)), nrow = 11, ncol = 11)
+
+v0 <- c(3/4, 1, 1, 1, 6/10, 5/10, 4/10, 3/10, 2/10, 1/10, 0)
+v1 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+v2 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+v3 <- c(0.025, 0, 0, 0, 2/15, 0, 0, 0, 0, 0, 0)
+v4 <- c(0.025, 0, 0, 0, 2/15, 1/6, 0, 0, 0, 0, 0)
+v5 <- c(0.025, 0, 0, 0, 2/15, 1/6, 1/5, 0, 0, 0, 0)
+v6 <- c(0.025, 0, 0, 0, 0, 1/6, 1/5, 7/30, 0, 0, 0)
+v7 <- c(0.025, 0, 0, 0, 0, 0, 1/5, 7/30, 4/15, 0, 0)
+v8 <- c(0.025, 0, 0, 0, 0, 0, 0, 7/30, 4/15, 3/10, 0)
+v9 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 4/15, 3/10, 1/2)
+v10 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 3/10, 1/2)
+cutoff_matrix <- cbind(v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10)
+
+w0 <- c(3/4, 0, 1/10, 2/10, 4/10, 9/10, 9/10, 4/10, 2/10, 1/10, 0)
+w1 <- c(0.025, 1/2, 3/10, 0, 0, 0, 0, 0, 0, 0, 0)
+w2 <- c(0.025, 1/2, 3/10, 4/15, 0, 0, 0, 0, 0, 0, 0)
+w3 <- c(0.025, 0, 3/10, 4/15, 1/5, 0, 0, 0, 0, 0, 0)
+w4 <- c(0.025, 0, 0, 4/15, 1/5, 1/30, 0, 0, 0, 0, 0)
+w5 <- c(0.025, 0, 0, 0, 1/5, 1/30, 1/30, 0, 0, 0, 0)
+w6 <- c(0.025, 0, 0, 0, 0, 1/30, 1/30, 1/5, 0, 0, 0)
+w7 <- c(0.025, 0, 0, 0, 0, 0, 1/30, 1/5, 4/15, 0, 0)
+w8 <- c(0.025, 0, 0, 0, 0, 0, 0, 1/5, 4/15, 3/10, 0)
+w9 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 4/15, 3/10, 1/2)
+w10 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 3/10, 1/2)
+parabolic_matrix <- cbind(w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,w10)
+```
+
+
+```{r}
+n <- 1000
+m <- 226
+q <- 2000
+baseline_diff_avg_rating <- rep(NA, q)
+baseline_diff_se <- rep(NA, q)
+pwr_pvals_baseline <- rep(NA, q)
+for(t in 1:q){
+  season1_generated <- matrix(NA, nrow=n, ncol=m)
+  for(i in 1:m){
+    show_ratings <- rbinom(n,10,imbd_new$p_season1[i])
+    season1_generated[,i] <- show_ratings
+  }
+  season2_generated_baseline <- matrix(NA, nrow=n, ncol=m)
+  for(i in 1:m){
+    for(j in 1:n){
+      if(season1_generated[j,i] == 0){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[1,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 1){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[2,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 2){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[3,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 3){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[4,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 4){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[5,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 5){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[6,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 6){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[7,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 7){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[8,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 8){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[9,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 9){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[10,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 10){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = baseline_matrix[11,])
+        season2_generated_baseline[j,i] <- show_ratings
+      }
+    }
+  }
+  season1_generated[season1_generated == 0] <- NA
+  season2_generated_baseline[season2_generated_baseline == 0] <- NA
+  s1_colmeans <- colMeans(season1_generated, na.rm = TRUE)
+  s2_colmeans_baseline <- colMeans(season2_generated_baseline, na.rm = TRUE)
+  baseline_diff_avg_rating[t] <- mean(s2_colmeans_baseline - s1_colmeans)
+  baseline_diff_se[t] <- sd(s2_colmeans_baseline - s1_colmeans)
+  pwr_pair_ttest <- t.test(s1_colmeans, s2_colmeans_baseline, paired = TRUE)
+  pwr_pvals_baseline[t] <- pwr_pair_ttest$p.value
+}
+baseline_mean_diff <- mean(baseline_diff_avg_rating)
+baseline_se_diff <- mean(baseline_diff_se)
+pwr_p.hat_baseline <- mean(pwr_pvals_baseline < 0.05)
+baseline_mean_diff
+baseline_se_diff
+pwr_p.hat_baseline
+```
+
+
+
+```{r}
+#Estimate diff in avg. change in rating(season2 - season1) Cutoff
+cutoff_diff_avg_rating <- rep(NA, 1000)
+cutoff_diff_se <- rep(NA, 1000)
+pwr_pvals_cutoff <- rep(NA, q)
+for(t in 1:1000){
+  season1_generated <- matrix(NA, nrow=n, ncol=m)
+  for(i in 1:m){
+    show_ratings <- rbinom(n,10,imbd_new$p_season1[i])
+    season1_generated[,i] <- show_ratings
+  }
+  season2_generated_cutoff <- matrix(NA, nrow=n, ncol=m)
+  for(i in 1:m){
+    for(j in 1:n){
+      if(season1_generated[j,i] == 0){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[1,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 1){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[2,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 2){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[3,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 3){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[4,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 4){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[5,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 5){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[6,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 6){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[7,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 7){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[8,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 8){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[9,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 9){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[10,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 10){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = cutoff_matrix[11,])
+        season2_generated_cutoff[j,i] <- show_ratings
+      }
+    }
+  }
+  season1_generated[season1_generated == 0] <- NA
+  season2_generated_cutoff[season2_generated_cutoff == 0] <- NA
+  s1_colmeans <- colMeans(season1_generated, na.rm = TRUE)
+  s2_colmeans_cutoff <- colMeans(season2_generated_cutoff, na.rm = TRUE)
+  cutoff_diff_avg_rating[t] <- mean(s2_colmeans_cutoff - s1_colmeans)
+  cutoff_diff_se[t] <- sd(s2_colmeans_cutoff - s1_colmeans)
+  pwr_pair_ttest <- t.test(s1_colmeans, s2_colmeans_cutoff, paired = TRUE)
+  pwr_pvals_cutoff[t] <- pwr_pair_ttest$p.value
+}
+cutoff_mean_diff <- mean(cutoff_diff_avg_rating)
+cutoff_se_diff <- mean(cutoff_diff_se)
+pwr_p.hat_cutoff <- mean(pwr_pvals_cutoff < 0.05, na.rm = TRUE)
+cutoff_mean_diff
+cutoff_se_diff
+pwr_p.hat_cutoff
+```
+
+```{r}
+#Estimate diff in avg. change in rating(season2 - season1) Parabolic
+parabolic_diff_avg_rating <- rep(NA, 1000)
+parabolic_diff_se <- rep(NA, 1000)
+pwr_pvals_parabolic <- rep(NA, q)
+for(t in 1:1000){
+  season1_generated <- matrix(NA, nrow=n, ncol=m)
+  for(i in 1:m){
+    show_ratings <- rbinom(n,10,imbd_new$p_season1[i])
+    season1_generated[,i] <- show_ratings
+  }
+  season2_generated_parabolic <- matrix(NA, nrow=n, ncol=m)
+  for(i in 1:m){
+    for(j in 1:n){
+      if(season1_generated[j,i] == 0){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[1,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 1){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[2,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 2){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[3,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 3){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[4,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 4){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[5,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 5){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[6,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 6){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[7,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 7){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[8,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 8){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[9,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 9){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[10,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+      else if(season1_generated[j,i] == 10){
+        show_ratings <- sample(0:10, size = 1, replace = TRUE, prob = parabolic_matrix[11,])
+        season2_generated_parabolic[j,i] <- show_ratings
+      }
+    }
+  }
+  season1_generated[season1_generated == 0] <- NA
+  season2_generated_parabolic[season2_generated_parabolic == 0] <- NA
+  s1_colmeans <- colMeans(season1_generated, na.rm = TRUE)
+  s2_colmeans_parabolic <- colMeans(season2_generated_parabolic, na.rm = TRUE)
+  parabolic_diff_avg_rating[t] <- mean(s2_colmeans_parabolic - s1_colmeans)
+  parabolic_diff_se[t] <- sd(s2_colmeans_parabolic - s1_colmeans)
+  pwr_pair_ttest <- t.test(s1_colmeans, s2_colmeans_parabolic, paired = TRUE)
+  pwr_pvals_parabolic[t] <- pwr_pair_ttest$p.value
+}
+parabolic_mean_diff <- mean(parabolic_diff_avg_rating)
+parabolic_se_diff <- mean(parabolic_diff_se)
+pwr_p.hat_parabolic <- mean(pwr_pvals_parabolic < 0.05, na.rm = TRUE)
+parabolic_mean_diff
+parabolic_se_diff
+pwr_p.hat_parabolic
+```
+
+
+
