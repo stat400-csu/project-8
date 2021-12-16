@@ -8,6 +8,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(knitr)
 ```
 
 Broadly speaking, the goal of our project was to perform analysis relevant to stat 400 utilizing data we had scrapped from IMDB.  
