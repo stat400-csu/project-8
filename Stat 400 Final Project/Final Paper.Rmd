@@ -1,0 +1,176 @@
+---
+title: "Final Paper"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+```
+
+Broadly speaking, the goal of our project was to perform analysis relevant to stat 400 utilizing data we had scrapped from IMDB.  
+The data consisted of 226 observations pulled randomly from the top 5000 most voted on shows on IMDB.  
+The top 5000 shows was chosen since it gave us a diverse set of shows, while also excluding shows
+that had very small amounts of data. The head of the data frame with this data is shown below.
+```{r, echo = FALSE, message = FALSE}
+# Read in data
+read.csv('Final_Data (1).csv') -> data
+head(data)
+
+```
+When considering potential questions to look at, one that stood out to us was testing to 
+see if the average ratings differed between season 1 and season 2 of a TV show.  One way of testing this
+would be a two-sample t-test for difference in populations means.  The issue with this is season 1 
+and season 2 ratings are likely not independent of one another, so we would be violating the 
+required assumption that our two samples are independent. The extent of the impact of this violation
+is something that we can analyze via techniques learned in stat 400.  Thus the goal of
+our project became to use Monte Carlo analysis to determine the effectiveness of a 
+two-sample t-test for a difference in population means between season 1 and season 
+2 of a TV show when different assumptions are applied.  Lets start out by looking at some 
+exploratory data analysis.  
+```{r, echo = FALSE, message = FALSE, results = FALSE}
+# Read in data
+read.csv('Final_Data (1).csv') -> data
+
+# Create plots of Season 1 and Season 2 data
+ggplot() + geom_histogram(data = data, aes(season1), fill = "steelblue3") + xlab("Season 1 Ratings") 
+ggplot() + geom_histogram(data = data, aes(season2), fill = "orange") + xlab("Season 2 Ratings") 
+ggplot() + geom_histogram(data = data, aes(season2), fill = "orange", alpha = .6) + xlab("Ratings")  + geom_histogram(data = data, aes(season1), fill = "steelblue3", alpha = .6)
+
+# Compare season 1 and season 2 mean ratings
+mean(data$season1)
+sd(data$season1)
+mean(data$season2)
+sd(data$season2)
+```
+
+Looking at these plots, it appears that the distribution of ratings for season 1 and season 2
+are fairly similar to one another.  Season 1 had a mean rating of 7.67(.627) and season 2 had a mean rating of 
+7.71(.725). At a glance, it would appear that the distribution of ratings for each season
+is somewhat normal, but with a pretty heavy tail to the left side.  We should consider then
+that we might be violating the normality assumption that is made for the two-sample t-test.
+Let's create some normal quantile-quantile plots to further investigate.
+
+```{r, echo = FALSE, message = FALSE}
+# Create quantile-quantile plots to see if the season1 and season2 data are normally distributed
+qqnorm(data$season1,  main = "Normal Q-Q Season 1")
+qqnorm(data$season2, main = "Normal Q-Q Season 2")
+
+```
+
+As expected from the shapes of the histograms,  the normal quantile-quantile plot is 
+not quite linear for both seasons.  The extent to which we are violating the normality 
+assumption might not be too high though, given that these plots are still 
+somewhat close to forming straight lines.  Next lets look into whether or not we are violating the
+other assumption made for a two-sample t-test: independence
+
+```{r, echo = FALSE}
+model <- lm(data = data, season2 ~ season1)
+summary(model)
+
+```
+We can see from the summary of the above linear model which fits season 2 as a function of season 1 that 
+the season 2 rating is indeed dependent on season 1 rating.  This can be seen from the small p-val
+for season 1 of <.001.  Keeping in mind that we have violated both the normality and independence
+assumption, lets run a two-sample t-test and see the results we get.
+
+```{r, echo = FALSE, message = FALSE}
+# Run t test for difference in population means
+t.test(x  = data$season1, y = data$season2)
+
+```
+
+The conclusion from this two-sample t-test is: We do not find statistically significant
+evidence of a difference in population mean rating between the first and second seasons
+of TV shows. The primary question at this point is to what extent is our violation of 
+assumptions affecting these results.  First we will look at analyzing this using bootstrap 
+sampling in a way that makes our season 1 and season 2 ratings independent.  The best way 
+to describe how this was done will be to display the code with comments.  This is shown
+below.  It is reasonable to gloss over the code, as a summary of what the code is doing
+is provided afterwards.
+
+
+```{r}
+# Create vectors to store values
+set.seed(0)
+boot_conf <- c()
+boot_p <- c()
+boot_conf2 <- c()
+boot_p2 <- c()
+
+# Create vector with which we will randomly select indexs which correspond to a show to sample
+nums <- seq(1, 226)
+
+# For loop in which we generate our 20000 bootstrap samples and run corresponding two-sample
+# t-tests
+for(i in 1:20000){
+samp3 <- c()
+samp4 <- c()
+
+# Sample season 1 data independently of season 2 data
+samp1 <- sample(data$season1, replace = TRUE, size = 200)
+
+# Sample season 2 data independently of season 1 data
+samp2 <- sample(data$season2, replace = TRUE, size = 200)
+
+# Calculate p-val from two sample t-test and store into vector
+append(boot_conf, t.test(x = samp1, y = samp2)[4]) -> boot_conf
+append(boot_p, t.test(x = samp1, y = samp2)[3]) -> boot_p
+
+# Sample indexes randomly for selecting our dependent season 1 and season 2 data
+sample(nums, replace = TRUE, size = 200) -> indexs
+
+# Sample season 1 and season 2 data, this time in pairs so that we are once again 
+# violating the independence assumption.  Calculate new p-val from two sample t-test
+# for the sake of making a comparison between when we are and aren't making an assumption
+# violation.
+for(j in 1:length(indexs)){
+  append(samp3, data$season1[indexs[j]]) -> samp3
+  append(samp4, data$season1[indexs[j]]) -> samp4
+}
+  append(boot_conf2, t.test(x = samp3, y = samp4)[4]) -> boot_conf2
+  append(boot_p2, t.test(x = samp3, y = samp2)[3]) -> boot_p2
+}
+
+
+# Mean and SD of p-val for 20000 two sample t-tests on bootstrapped data
+# where our season 1 and season 2
+# data were sampled independently, which allows us to circumvent our independence
+# violation.
+mean(unlist(boot_p))
+sd(unlist(boot_p))
+# Mean and SD of p-val for 20000 two sample t-tests on bootstrapped data
+# where our season 1 and season 2
+# data were sampled dependently, so we are once again violating the independence
+# assumption
+mean(unlist(boot_p2))
+sd(unlist(boot_p2))
+
+```
+The first thing the above code chunk does is generate 20000 bootstrapped samples 
+from our original data.  However, this time season 1 and season 2 data are pulled independently
+of one another, not in pairs.  This way, unlike our original sample, the bootstrapped samples are not in violation of 
+the independence assumption that a two-sample t-test requires.  Next 20000 two-sample
+t-tests were run on our new data.  This resulted in a mean p-value of .427(.30).  This
+is a bit smaller than the p-val of .462 that we calculated on our original sample.
+However, there is still no statistically significant evidence of a difference in population
+means between season 1 and season 2 ratings, so our interpretation of the results does 
+not change.  The next thing the above code chunk does is generate another 20000 bootstrapped
+samples from our original data.  This time season 1 and season 2 data are pulled in pairs, so 
+we are once again violating the independence assumption.  The mean p-val sampling this way was 
+.431(.30).  This is a bit greater than the mean p-val of .427 when sampling independently.
+The fact that there is a noticeable difference in mean p-val despite such a large number
+of bootstrapped samples could indicate that sampling independently instead of in pairs has an 
+impact on the results of the analysis.  However, the difference in mean p-vals is not huge, which
+could indicate that a paired samples t-test is not being impacted too much due to failing the 
+independence assumption as a result of season 2 ratings and season 1 ratings being dependent.  This 
+sort of interpretation would support the viability of using a two-sample t-test on the original 
+data set.
+
+
+
+
+
+
+
