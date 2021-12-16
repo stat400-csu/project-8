@@ -303,7 +303,7 @@ Looking at the results from the simulation to derive empirical power, we see %10
 # Apendix
 
 ```{r, echo = FALSE, message = FALSE}
-#
+
 head(data)
 
 ```
