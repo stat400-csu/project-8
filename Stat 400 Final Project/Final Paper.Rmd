@@ -297,6 +297,8 @@ Looking at the results from the simulation to derive empirical power, we see %10
 * RStudio Team (2020). RStudio: Integrated Development for R. RStudio, PBC, Boston, MA URL http://www.rstudio.com/.
 * Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686, https://doi.org/10.21105/joss.01686
 * Xie Y (2021). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version 1.36, https://yihui.org/knitr/. 
+* Buentello, Saul. “Data Analysis and Visualization of Scraped Data from Imdb with R.” Medium, Towards Data Science, 22 July 2020, https://towardsdatascience.com/data-analysis-and-visualization-of-scraped-data-from-imdb-with-r-5d75e8191fc0. 
+* Webb, Erik. “How to Scrape Imdb and Analyze Your Favorite TV Shows like A True Nerd.” Unboxed Analytics, 3 Feb. 2021, https://unboxed-analytics.com/data-technology/how-to-scrape-imdb-and-analyze-your-favorite-tv-shows-like-a-true-nerd/. 
 
 
 
