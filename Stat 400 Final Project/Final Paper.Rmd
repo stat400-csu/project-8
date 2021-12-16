@@ -1,5 +1,6 @@
 ---
-title: "Final Paper"
+title: "Monte Carlo Analysis of Television Data"
+author: "Dan Agnew, Tyler Hempstead, Mars Alkindi"
 output: pdf_document
 ---
 
