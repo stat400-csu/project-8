@@ -14,7 +14,7 @@ library(knitr)
 
 ```{r}
 #convert mean score to probability
-imbd_data <- read.csv("imbd_data.csv")
+read.csv('Final_Data (1).csv') -> imbd_data
 imbd_new <- imbd_data %>%
   mutate(p_season1 = season1/10)
 
