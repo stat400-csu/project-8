@@ -169,7 +169,133 @@ sort of interpretation would support the viability of using a two-sample t-test 
 data set.
 
 
+To further explore these differences in average score between season 1 and season 2 of television shows, we decided to generate raw scores for season 1 and season 2 of each television show to calculate averages because original dataset contained only average scores to perform a paired t-test. We then used Monte Carlo methods to get empirical power of a paired t-test to determine if this is an appropriate method of exploring the differences in average scores for season 1 and season 2 of television shows. To generate individual scores for each television show we began by starting with season 1 averages. Because the raw scores are integers ranging from 1 to 10, the first step was to convert to season 1 average for each show into a probability by dividing by 10 (maximum score). We then drew 1000 samples ranging from 0 to 10, to represent 1000 different people rating, from a binomial distribution with the average rating converted to the probability as the probability of a success. Not everyone watches both season 1 and season 2 of a television show, and we accounted for this by assigning a 0 score as someone not rating that season for that show. 
+To generate season 2 scores, we first further explored the relationship between season 1 and season 2 scores. The plot below is a plot of the average ratings for 226 shows from the original dataset. 
 
+```{r, echo=FALSE}
+imbd_data <- data
+ggplot(imbd_data) +
+  geom_point(aes(x=season1, y=season2)) +
+  ggtitle("Original Data Season 1 Means vs. Season 2 Means") +
+  xlab("Season 1 Average Scores") +
+  ylab("Season 2 Average Scores")
+```
+Observing the plot above, there appears to be a fairly strong positive relationship between the average scores for seasons 1 and 2. We used this information to explore different assumptions we had about the way people rate season 2 based on how they rated season 1. One assumption that we explored is that if someone rates season 1 low, then they will not watch and rate season 2. Another assumption we explored is that people who rate season 1 extremely high or low, that they are more likely to rate season 2. Based on these assumptions, we built transition matrices, assigning probabilities that season 2 can take on based on the rating for season 2. We built the assumptions in, and then normalized each row.
+
+
+For the first mechanism of generating season 2 raw scores, we decided to provide a baseline method that has no assumptions and all of the probabilities for season 2 rating based on season 1 rating for each individual is uniform. All values of rating for season 2, including not rating, are all equally likely based on an individual's season 1 score. The plot representing probability of rating season 2 based on season 1 score assigned and the transition matrix are below. 
+
+
+```{r, echo=FALSE}
+#baseline transition matrix
+baseline_matrix <- matrix(c(rep(1/11,121)), nrow = 11, ncol = 11)
+#plot no assumption visual
+no_assumptionPlot <- ggplot() +
+  coord_cartesian(xlim = c(0, 10), ylim = c(0, 1)) +
+  geom_segment(aes(x=0, xend=10, y=10/11, yend=10/11)) +
+  scale_x_continuous(breaks=c(0,1,2,3,4,5,6,7,8,9,10)) +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)) +
+  xlab("Season 1 Rating") +
+  ylab("P(Rate Season 2)") +
+  ggtitle("No Assumptions")
+no_assumptionPlot
+#Make baseline matrix for visualization
+baseline_df <- data.frame(baseline_matrix)
+rownames(baseline_df) <- c("Season1=0", "Season1=1", "Season1=2", "Season1=3", "Season1=4", "Season1=5", "Season1=6", "Season1=7", "Season1=8", "Season1=9", "Season1=10")
+colnames(baseline_df) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+baseline_matrix_table <- kable(baseline_df, caption = "P(rate season 2 | season1 rating)", digits = 3, booktabs = TRUE)
+baseline_matrix_table
+```
+
+For the assumption that low ratings for season 1 lead to not watching and rating season 2, we assigned a cutoff of a score 3 or lower for as the threshold for guaranteeing that season 2 will not be rated. For scores 4 and higher, we also assumed that probability of rating season 2 would increase as season 1 score increased. Based on the relationship in the original dataset we also assumed that if someone rated season 2, the score would be within plus or minus 1 of the score of their season 1 rating. The plot highlighting these assumptions and the transition matrix to generate season 2 data are below.  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#Build transition matrix
+v0 <- c(3/4, 1, 1, 1, 6/10, 5/10, 4/10, 3/10, 2/10, 1/10, 0)
+v1 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+v2 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+v3 <- c(0.025, 0, 0, 0, 2/15, 0, 0, 0, 0, 0, 0)
+v4 <- c(0.025, 0, 0, 0, 2/15, 1/6, 0, 0, 0, 0, 0)
+v5 <- c(0.025, 0, 0, 0, 2/15, 1/6, 1/5, 0, 0, 0, 0)
+v6 <- c(0.025, 0, 0, 0, 0, 1/6, 1/5, 7/30, 0, 0, 0)
+v7 <- c(0.025, 0, 0, 0, 0, 0, 1/5, 7/30, 4/15, 0, 0)
+v8 <- c(0.025, 0, 0, 0, 0, 0, 0, 7/30, 4/15, 3/10, 0)
+v9 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 4/15, 3/10, 1/2)
+v10 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 3/10, 1/2)
+cutoff_matrix <- cbind(v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10)
+#plot cutoff assumption visual
+cutoff_plot <- ggplot() +
+  coord_cartesian(xlim = c(0, 10), ylim = c(0, 1)) +
+  geom_vline(xintercept = 3, linetype="dashed", color = "red") +
+  geom_segment(aes(x=4, xend=10, y=.6, yend=1)) +
+  scale_x_continuous(breaks=c(0,1,2,3,4,5,6,7,8,9,10)) +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)) +
+  xlab("Season 1 Rating") +
+  ylab("P(Rate Season 2)") +
+  ggtitle("Cutoff Assumption")
+cutoff_plot
+#transition matrix visual
+cutoff_df <-data.frame(cutoff_matrix)
+rownames(cutoff_df) <- c("Season1=0", "Season1=1", "Season1=2", "Season1=3", "Season1=4", "Season1=5", "Season1=6", "Season1=7", "Season1=8", "Season1=9", "Season1=10")
+colnames(cutoff_df) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+baseline_cutoff_table <- kable(cutoff_df, caption = "P(rate season 2 | season1 rating)", digits = 3)
+baseline_cutoff_table
+```
+
+To explore the assumption that extreme values for season 1 result in higher probability of rating season 2, we built another transition matrix. We built the matrix under the assumption that probability of rating season 2 follows a quadratic relationship with season 1 ratings and built it with the assumption that scores closer the middle of the range of possible values will have a low probability, and then a quadratic relationship that increases probability as you move away from the center of scoring options. We also assumed that if someone rated season 2, the score would be within plus or minus 1 of the score of their season 1 rating based on exploring the original data. The plot of the assumptions and transition matrix are below.
+
+```{r, echo=FALSE}
+#Build transition matrix
+w0 <- c(3/4, 0, 1/10, 2/10, 4/10, 9/10, 9/10, 4/10, 2/10, 1/10, 0)
+w1 <- c(0.025, 1/2, 3/10, 0, 0, 0, 0, 0, 0, 0, 0)
+w2 <- c(0.025, 1/2, 3/10, 4/15, 0, 0, 0, 0, 0, 0, 0)
+w3 <- c(0.025, 0, 3/10, 4/15, 1/5, 0, 0, 0, 0, 0, 0)
+w4 <- c(0.025, 0, 0, 4/15, 1/5, 1/30, 0, 0, 0, 0, 0)
+w5 <- c(0.025, 0, 0, 0, 1/5, 1/30, 1/30, 0, 0, 0, 0)
+w6 <- c(0.025, 0, 0, 0, 0, 1/30, 1/30, 1/5, 0, 0, 0)
+w7 <- c(0.025, 0, 0, 0, 0, 0, 1/30, 1/5, 4/15, 0, 0)
+w8 <- c(0.025, 0, 0, 0, 0, 0, 0, 1/5, 4/15, 3/10, 0)
+w9 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 4/15, 3/10, 1/2)
+w10 <- c(0.025, 0, 0, 0, 0, 0, 0, 0, 0, 3/10, 1/2)
+parabolic_matrix <- cbind(w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,w10)
+#plot cutoff assumption visual
+parab_func <- function(x){
+  ((x-5)^2)/25
+}
+quadratic_plot <- ggplot() +
+  stat_function(fun = parab_func) +
+  xlim(c(0, 10)) +
+  ylim(c(0,1)) +
+  xlab("Season 1 Rating") +
+  ylab("P(Rate Season 2)") +
+  ggtitle("Quadratic Assumption") +
+  scale_y_continuous(breaks=c(0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1)) 
+quadratic_plot
+#transition matrix visual
+parabolic_df <-data.frame(parabolic_matrix)
+rownames(parabolic_df) <- c("Season1=0", "Season1=1", "Season1=2", "Season1=3", "Season1=4", "Season1=5", "Season1=6", "Season1=7", "Season1=8", "Season1=9", "Season1=10")
+colnames(parabolic_df) <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
+baseline_parabolic_table <- kable(parabolic_df, caption = "P(rate season 2 | season1 rating)", digits = 3)
+baseline_parabolic_table
+```
+
+After building these transition matrices to generate season 1 and season 2 raw scores for 1000 people, we explored paired t-tests for the difference in means of average score for the two seasons. We did this for each of the 3 generated season 2 data methods. We ran 2000 simulations for each method. Season 1 scores were generated by the method previously mentioned for 226 shows, and then season 2 scores were generated by the assumptions previously mentioned. After these scores were generated, averages were calculated and then a paired t-test was performed for a difference in means. We stored the difference in average scores, the standard error of the difference, and also the p-value. After the simulations were ran for each method, we took the mean of these values to get empirical difference, empirical standard error, and empirical power. The table below shows the results. Please refer to the file titled "generate_data.Rmd" to see the methods used to accomplish this. 
+
+```{r, echo=FALSE}
+emp_df <- data.frame(rbind(c(-2.166, 0.636, 1), c(0.187, 0.122, 1), c(0.398, 1.80, 1)), row.names = c("Baseline Method", "Cutoff Method", "Quadratic Method"))
+colnames(emp_df) <- c('Empirical Difference','Empirical SE','Empirical Power')
+table_data <- kable(emp_df)
+table_data
+```
+
+Looking at the results from the simulation to derive empirical power, we see %100 power for each method used. We do not believe this should be the case for all the methods, and these data based on the assumptions do not appear to follow the trends in the original data used. In order to make a decision on whether a paired t-test is appropriate method to explore the difference in mean sores for different television shows we need to explore further. Creating new transition matrices based on assumptions that the original data have would be a good start. The best method would be to adjust transition matrices to be able to control for different effect sizes, and rerun the simulation using these different effect sizes. This would allow us to see what effect sizes a paired t-test would be able to detect for the difference in means of ratings of different seasons. We will use the data generating and empirical power methods we have built to continue exploring this. 
+
+# References
+* IMDb(2021). TV Series (Sorted by Popularity Ascending). https://www.imdb.com/search/title/?title_type=tv_series
+* R Core Team (2019). R: A language and environment for statistical computing. R Foundation for Statistical Computing, Vienna, Austria. URL https://www.R-project.org/.
+* RStudio Team (2020). RStudio: Integrated Development for R. RStudio, PBC, Boston, MA URL http://www.rstudio.com/.
+* Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686, https://doi.org/10.21105/joss.01686
+* Xie Y (2021). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version 1.36, https://yihui.org/knitr/. 
 
 
 
