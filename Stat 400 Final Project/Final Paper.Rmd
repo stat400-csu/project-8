@@ -16,9 +16,9 @@ library(knitr)
 read.csv('Final_Data (1).csv') -> data
 ```
 
-Broadly speaking, the goal of our project was to perform analysis relevant to stat 400 utilizing data we had scrapped from IMDB.  
+Broadly speaking, the goal of our project was to perform analysis relevant to stat 400 utilizing data we had scraped from IMDB.  
 The data consisted of 226 observations pulled randomly from the top 5000 most voted on shows on IMDB.  
-The top 5000 shows was chosen since it gave us a diverse set of shows, while also excluding shows
+The top 5000 shows were chosen representing a diverse set of shows, while also excluding shows
 that had very small amounts of data. The variables scraped from IMDB were: show name, season 1 average rating, season 2 average rating, average votes per episode, airdate of the first season, airdate of the second season, number of episodes, an indicator variable for if the show aired in english, the runtime, and the certificate(for example TV-MA).  The head of the data frame is output at the end of the paper in an apendix for reference.
 When considering potential questions to look at, one that stood out to us was testing to 
 see if the average ratings differed between season 1 and season 2 of a TV show.  One way of testing this
